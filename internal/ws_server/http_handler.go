@@ -38,15 +38,12 @@ func NewWebsocketHttpHandler(
 		// buffered channel as write queue for each connection
 		sendMsgChan := make(chan []byte, writeQueueSize)
 
-		// channel as read queue for each connection
-		rcvMsgChan := make(chan []byte)
-
 		// doneChan channel to signal writer goroutine to exit
 		doneChan := make(chan struct{})
 
 		// start ping and connection handlers
 		go handleWebsocketPing(conn, doneChan, pingInterval)
-		go handleWebsocketConn(conn, rcvMsgChan, sendMsgChan, doneChan, activeConns)
+		go handleWebsocketConn(conn, sendMsgChan, doneChan, activeConns, msgHandler)
 	}
 
 	return http.HandlerFunc(handler)

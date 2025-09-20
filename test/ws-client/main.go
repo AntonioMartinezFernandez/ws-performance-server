@@ -12,29 +12,29 @@ import (
 var (
 	serverAddr  = "localhost:8080"
 	message     = `{"foo":"bar %s"}`
-	msgInterval = 1500 * time.Millisecond
-	clients     = 2
+	msgInterval = 300 * time.Second
+	clients     = 10000
 )
 
 func main() {
-	// Start 10 clients
+	// start clients
 	for i := range clients {
 		go connectClient(i + 1)
 	}
 
-	// Run indefinitely
+	// run indefinitely
 	select {}
 }
 
 func connectClient(clientNumber int) {
-	// Connect to the server
+	// connect to the server
 	c, _, err := websocket.DefaultDialer.Dial("ws://"+serverAddr, nil)
 	if err != nil {
 		log.Fatalf("dial error: %v", err)
 	}
 	defer c.Close()
 
-	// Receive and print messages
+	// print received messages
 	go func() {
 		for {
 			_, msg, err := c.ReadMessage()
@@ -46,7 +46,7 @@ func connectClient(clientNumber int) {
 		}
 	}()
 
-	// Send messages periodically
+	// send messages periodically
 	ticker := time.NewTicker(msgInterval)
 	defer ticker.Stop()
 

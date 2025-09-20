@@ -22,34 +22,35 @@ var (
 	maxConns       = flag.Int64("maxconn", 2000000, "soft limit for connections (used as semaphore)")
 	rlimit         = flag.Uint64("rlimit", 4000000, "set RLIMIT_NOFILE to this value")
 	writeQueueSize = flag.Int("writequeuesize", 1024, "number of messages to queue per connection")
-	pingInterval   = flag.Duration("pinginterval", 30*time.Second, "interval for websocket pings")
+	pingInterval   = flag.Duration("pinginterval", 45*time.Second, "interval for websocket pings")
 
-	activeConns *int64
+	activeConns *int64 = new(int64)
 )
 
 func main() {
 	flag.Parse()
 
-	// Set GOMAXPROCS
+	// set GOMAXPROCS
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
+	// print active connections every 5 seconds
 	go func() {
-		ticker := time.NewTicker(1 * time.Second)
+		ticker := time.NewTicker(10 * time.Second)
 		defer ticker.Stop()
 
 		for range ticker.C {
-			fmt.Println("Current active connections:", atomic.LoadInt64(activeConns))
+			fmt.Println("current active connections:", atomic.LoadInt64(activeConns))
 		}
 	}()
 
-	// Increase RLIMIT_NOFILE (privileges needed if is higher than system limits)
+	// increase RLIMIT_NOFILE (privileges needed if is higher than system limits)
 	if err := setRlimit(*rlimit); err != nil {
 		log.Printf("warning: no se pudo setear rlimit: %v", err)
 	} else {
 		log.Printf("rlimit nofile set to %d", *rlimit)
 	}
 
-	// Create listener with socket options
+	// ceate listener with socket options
 	listenerConfig := net.ListenConfig{
 		Control: func(network, address string, c syscall.RawConn) error {
 			return controlSocket(network, address, c)

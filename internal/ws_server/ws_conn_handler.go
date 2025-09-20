@@ -13,10 +13,10 @@ import (
 
 func handleWebsocketConn(
 	conn net.Conn,
-	rcvMsgChan chan []byte,
 	sendMsgChan chan []byte,
 	doneChan chan struct{},
 	activeConns *int64,
+	msgHandler MessageHandler,
 ) {
 	// set unique connection ID
 	connectionID := uuid.New().String()
@@ -60,16 +60,7 @@ readerFor:
 
 		switch opCode {
 		case ws.OpText, ws.OpBinary:
-			// echo emulation with backpressure
-			select {
-			case sendMsgChan <- rcvMessage:
-				// received message queued
-
-			default:
-				// full queue - close connection to prevent wear out
-				log.Printf("write queue full - closing connection")
-				break readerFor
-			}
+			msgHandler(rcvMessage, sendMsgChan) // process received message
 
 		case ws.OpPing:
 			// respond to ping
