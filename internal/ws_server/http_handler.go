@@ -10,7 +10,7 @@ import (
 )
 
 // http handler for creating websockets connections using gobwas/ws
-func NewWebsocketHttpHandler(
+func NewWebsocketConnectionHttpHandler(
 	activeConns *int64,
 	maxConns int64,
 	writeQueueSize int,

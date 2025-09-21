@@ -4,9 +4,9 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"log"
 	"net"
 	"net/http"
+	"os"
 	"runtime"
 	"sync/atomic"
 	"syscall"
@@ -28,6 +28,8 @@ var (
 )
 
 func main() {
+	rootCtx := context.Background()
+
 	flag.Parse()
 
 	// set GOMAXPROCS
@@ -45,9 +47,10 @@ func main() {
 
 	// increase RLIMIT_NOFILE (privileges needed if is higher than system limits)
 	if err := setRlimit(*rlimit); err != nil {
-		log.Printf("warning: no se pudo setear rlimit: %v", err)
+		fmt.Printf("warning: unable to set rlimit: %v\n", err)
+		os.Exit(1)
 	} else {
-		log.Printf("rlimit nofile set to %d", *rlimit)
+		fmt.Printf("rlimit nofile set to %d\n", *rlimit)
 	}
 
 	// ceate listener with socket options
@@ -58,19 +61,20 @@ func main() {
 	}
 
 	netListener, err := listenerConfig.Listen(
-		context.Background(),
+		rootCtx,
 		"tcp",
 		*addr,
 	)
 	if err != nil {
-		log.Fatalf("listen: %v", err)
+		fmt.Printf("error starting tcp listener: %v\n", err)
+		os.Exit(1)
 	}
 	defer netListener.Close()
 
-	log.Printf("listening at %s (max connections %d)", *addr, *maxConns)
+	fmt.Printf("listening tcp connections at %s (max connections %d)\n", *addr, *maxConns)
 
 	server := &http.Server{
-		Handler: wsserver.NewWebsocketHttpHandler(
+		Handler: wsserver.NewWebsocketConnectionHttpHandler(
 			activeConns,
 			*maxConns,
 			*writeQueueSize,
@@ -81,7 +85,8 @@ func main() {
 
 	// start serving on the created listener
 	if err := server.Serve(netListener); err != nil && err != http.ErrServerClosed {
-		log.Fatalf("serve: %v", err)
+		fmt.Printf("error starting http server: %v\n", err)
+		os.Exit(1)
 	}
 }
 
